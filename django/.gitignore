@@ -1,0 +1,38 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+db.sqlite3
+*.sqlite3
+
+# Migrations
+*/migrations/__pycache__/
+*/migrations/*.pyc
+
+# Logs
+*.log
+
+# Static files
+staticfiles/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE / tooling
+.vscode/
+.idea/

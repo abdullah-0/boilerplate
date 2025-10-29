@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "django-auth-boilerplate"
+version = "0.1.0"
+description = "Django REST Framework boilerplate with JWT auth, email verification, and password recovery."
+authors = ["Fullstack Starter <dev@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Django = "^5.1"
+djangorestframework = "^3.15.2"
+django-cors-headers = "^4.6.0"
+django-environ = "^0.11.2"
+djangorestframework-simplejwt = "^5.4.0"
+psycopg = {extras = ["binary"], version = "^3.2.3"}
+gunicorn = "^23.0.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "25.1.0"
+ruff = "0.7.4"
+pre-commit = "3.8.0"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
