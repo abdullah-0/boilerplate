@@ -10,7 +10,10 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256"],
+    deprecated="auto",
+)
 
 oauth2_scheme = HTTPBearer(auto_error=False)
 
@@ -21,7 +24,7 @@ class Settings:
     debug: bool = field(default_factory=lambda: os.getenv("DEBUG"))
     app_url: str = field(default_factory=lambda: os.getenv("FRONTEND_URL"))
     allowed_origins: List[str] = field(
-        default_factory=lambda: os.getenv("ALLOWED_ORIGINS")
+        default_factory=lambda: os.getenv("ALLOWED_ORIGINS").split(",")
     )
 
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL"))

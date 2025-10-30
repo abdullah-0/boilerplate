@@ -8,12 +8,14 @@ packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.110.0"
-uvicorn = { extras = ["standard"], version = "^0.29.0" }
+fastapi = "^0.120.2"
+uvicorn = { extras = ["standard"], version = "^0.38.0" }
 sqlalchemy = "^2.0.23"
-alembic = "^1.12.1"
+asyncpg = "^0.30.0"
+alembic = "^1.17.1"
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
-bcrypt = "<5"
+bcrypt = "^5.0.0"
+psycopg = "^3.0.10"
 python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 python-dotenv = "^1.0.1"
 email-validator = "^2.1.0.post1"

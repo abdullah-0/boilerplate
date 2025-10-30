@@ -1,4 +1,4 @@
-# FastAPI Auth Boilerplate
+# FastAPI Boilerplate
 
 Modern FastAPI starter that ships with JWT authentication, refresh tokens, email verification, password resets, SQLAlchemy 2.0 models, and preconfigured project tooling.
 
@@ -17,7 +17,7 @@ cp .env.example .env  # adjust secrets once copied
 poetry install
 # activate the environment (e.g., `poetry shell` or `.venv\Scripts\activate` on Windows)
 alembic upgrade head
-uvicorn main:app --reload
+python main.py
 ```
 
 The API will be live at <http://localhost:8000> and documented at `/docs`.
@@ -75,8 +75,12 @@ The hook suite runs Ruff, Black, MyPy, and general formatting checks before each
 
 Create and apply migrations with Alembic (run from the project root with your virtual environment activated):
 
-```bash
-alembic revision --autogenerate -m "add-user-tokens"
+### Create Revision
+```
+alembic revision --autogenerate -m "message-here"
+```
+### Implement Revision
+```
 alembic upgrade head
 ```
 

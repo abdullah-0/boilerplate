@@ -2,25 +2,26 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
-from secrets import token_urlsafe
-from typing import Type, TypeVar
 
 from fastapi import HTTPException
 from jose import ExpiredSignatureError, JWTError, jwt
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session
 from starlette import status
 
 from app.core.config import pwd_context, settings
-from app.models import EmailVerificationToken, PasswordResetToken, User
-
-TokenModel = TypeVar("TokenModel", EmailVerificationToken, PasswordResetToken)
 
 
 class UserService:
-    def __init__(self, *, settings_obj=None, password_context=None) -> None:
-        self._settings = settings_obj or settings
-        self._pwd_context = password_context or pwd_context
+    """Business logic for user authentication-related helpers."""
+
+    def __init__(
+        self,
+        *,
+        secret_key: str | None = None,
+        algorithm: str | None = None,
+    ) -> None:
+        self._secret_key = secret_key or settings.secret_key
+        self._algorithm = algorithm or settings.algorithm
+        self._pwd_context = pwd_context
 
     def hash_password(self, password: str) -> str:
         return self._pwd_context.hash(password)
@@ -29,155 +30,144 @@ class UserService:
         return self._pwd_context.verify(plain_password, hashed_password)
 
     def create_tokens(self, user_id: int) -> dict[str, str]:
-        now = datetime.now(UTC)
-        access_payload = {
-            "sub": str(user_id),
-            "exp": now + timedelta(minutes=self._settings.access_token_expire_minutes),
-            "type": "access",
-        }
-        refresh_payload = {
-            "sub": str(user_id),
-            "exp": now + timedelta(days=self._settings.refresh_token_expire_days),
-            "type": "refresh",
-        }
-
-        access_token = jwt.encode(
-            access_payload,
-            self._settings.secret_key,
-            algorithm=self._settings.algorithm,
+        access_expire = timedelta(
+            minutes=self._as_int(settings.access_token_expire_minutes, default=30)
         )
-        refresh_token = jwt.encode(
-            refresh_payload,
-            self._settings.secret_key,
-            algorithm=self._settings.algorithm,
+        refresh_expire = timedelta(
+            days=self._as_int(settings.refresh_token_expire_days, default=7)
         )
 
+        access_token = self._encode_token(
+            subject=str(user_id),
+            expires_delta=access_expire,
+            token_type="access",
+        )
+        refresh_token = self._encode_token(
+            subject=str(user_id),
+            expires_delta=refresh_expire,
+            token_type="refresh",
+        )
         return {"access": access_token, "refresh": refresh_token, "type": "bearer"}
 
+    def decode_access_token(self, access_token: str) -> dict[str, str]:
+        return self._decode_token(
+            access_token,
+            expected_type="access",
+            invalid_status=status.HTTP_401_UNAUTHORIZED,
+            invalid_detail="Invalid access token",
+            expired_status=status.HTTP_401_UNAUTHORIZED,
+            expired_detail="Access token expired",
+        )
+
     def decode_refresh_token(self, refresh_token: str) -> dict[str, str]:
+        return self._decode_token(
+            refresh_token,
+            expected_type="refresh",
+            invalid_status=status.HTTP_401_UNAUTHORIZED,
+            invalid_detail="Invalid refresh token",
+            expired_status=status.HTTP_401_UNAUTHORIZED,
+            expired_detail="Refresh token expired",
+        )
+
+    def create_email_verification_token(self, user_id: int) -> str:
+        expires = timedelta(
+            hours=self._as_int(settings.email_verification_expiration_hours, default=48)
+        )
+        return self._encode_token(
+            subject=str(user_id),
+            expires_delta=expires,
+            token_type="verify_email",
+        )
+
+    def parse_email_verification_token(self, token: str) -> int:
+        payload = self._decode_token(
+            token,
+            expected_type="verify_email",
+            invalid_detail="Invalid verification token",
+            expired_detail="Verification token expired",
+        )
+        return int(payload["sub"])
+
+    def create_password_reset_token(self, user_id: int) -> str:
+        expires = timedelta(
+            minutes=self._as_int(
+                settings.password_reset_expiration_minutes, default=30
+            )
+        )
+        return self._encode_token(
+            subject=str(user_id),
+            expires_delta=expires,
+            token_type="password_reset",
+        )
+
+    def parse_password_reset_token(self, token: str) -> int:
+        payload = self._decode_token(
+            token,
+            expected_type="password_reset",
+            invalid_detail="Invalid password reset token",
+            expired_detail="Password reset token expired",
+        )
+        return int(payload["sub"])
+
+    def _encode_token(
+        self,
+        *,
+        subject: str,
+        expires_delta: timedelta,
+        token_type: str,
+        extra: dict[str, str] | None = None,
+    ) -> str:
+        now = datetime.now(UTC)
+        payload: dict[str, str | datetime] = {
+            "sub": subject,
+            "type": token_type,
+            "iat": now,
+            "exp": now + expires_delta,
+        }
+        if extra:
+            payload.update(extra)
+        return jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
+
+    def _decode_token(
+        self,
+        token: str,
+        *,
+        expected_type: str,
+        invalid_status: int = status.HTTP_400_BAD_REQUEST,
+        invalid_detail: str = "Invalid token",
+        expired_status: int = status.HTTP_400_BAD_REQUEST,
+        expired_detail: str = "Token expired",
+    ) -> dict[str, str]:
         try:
             payload = jwt.decode(
-                refresh_token,
-                self._settings.secret_key,
-                algorithms=[self._settings.algorithm],
+                token,
+                self._secret_key,
+                algorithms=[self._algorithm],
             )
         except ExpiredSignatureError as exc:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token expired",
+                status_code=expired_status,
+                detail=expired_detail,
             ) from exc
         except JWTError as exc:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
+                status_code=invalid_status,
+                detail=invalid_detail,
             ) from exc
 
-        if payload.get("type") != "refresh":
+        if payload.get("type") != expected_type:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type",
+                status_code=invalid_status,
+                detail=invalid_detail,
             )
         return payload
 
-    def create_email_verification_token(
-        self, db: Session, user: User
-    ) -> EmailVerificationToken:
-        self._invalidate_tokens(db, EmailVerificationToken, user.id)
-
-        token_value = self._generate_token()
-        expires_at = datetime.now(UTC) + timedelta(
-            hours=self._settings.email_verification_expiration_hours
-        )
-        record = EmailVerificationToken(
-            token=token_value, user=user, expires_at=expires_at
-        )
-        db.add(record)
-        db.commit()
-        db.refresh(record)
-        return record
-
-    def verify_email_token(self, db: Session, token_value: str) -> User:
-        stmt = select(EmailVerificationToken).where(
-            EmailVerificationToken.token == token_value
-        )
-        token = db.execute(stmt).scalar_one_or_none()
-        if token is None or token.consumed_at is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token"
-            )
-        if self._is_expired(token.expires_at):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired"
-            )
-
-        user = token.user
-        user.is_email_verified = True
-        token.consumed_at = datetime.now(UTC)
-
-        db.commit()
-        db.refresh(user)
-        return user
-
-    def create_password_reset_token(
-        self, db: Session, user: User
-    ) -> PasswordResetToken:
-        self._invalidate_tokens(db, PasswordResetToken, user.id)
-
-        token_value = self._generate_token()
-        expires_at = datetime.now(UTC) + timedelta(
-            minutes=self._settings.password_reset_expiration_minutes
-        )
-        record = PasswordResetToken(token=token_value, user=user, expires_at=expires_at)
-        db.add(record)
-        db.commit()
-        db.refresh(record)
-        return record
-
-    def reset_password_with_token(
-        self, db: Session, token_value: str, new_password: str
-    ) -> User:
-        stmt = select(PasswordResetToken).where(PasswordResetToken.token == token_value)
-        token = db.execute(stmt).scalar_one_or_none()
-        if token is None or token.consumed_at is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token"
-            )
-        if self._is_expired(token.expires_at):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired"
-            )
-
-        user = token.user
-        user.password = self.hash_password(new_password)
-        token.consumed_at = datetime.now(UTC)
-
-        db.commit()
-        db.refresh(user)
-        return user
-
-    def _invalidate_tokens(
-        self, db: Session, model: Type[TokenModel], user_id: int
-    ) -> None:
-        db.execute(
-            update(model)
-            .where(
-                model.user_id == user_id,
-                model.consumed_at.is_(None),
-            )
-            .values(consumed_at=datetime.now(UTC))
-        )
-
     @staticmethod
-    def _generate_token() -> str:
-        return token_urlsafe(48)
-
-    @staticmethod
-    def _is_expired(expires_at: datetime) -> bool:
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=UTC)
-        else:
-            expires_at = expires_at.astimezone(UTC)
-        return expires_at < datetime.now(UTC)
+    def _as_int(value: int | str | None, *, default: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
 
 
 @lru_cache(maxsize=1)

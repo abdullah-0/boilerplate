@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from core.config import settings
-from services.email import EmailService
+import pytest
+
+from app.core.config import settings
+from app.services.email import EmailService
 
 
 class RecordingSMTP:
@@ -30,7 +32,12 @@ class RecordingSMTP:
 
 def test_skip_email_when_credentials_missing() -> None:
     RecordingSMTP.created = False
-    service = EmailService(smtp_backend=RecordingSMTP)
+    custom_settings = replace(
+        settings,
+        smtp_username=None,
+        smtp_password=None,
+    )
+    service = EmailService(smtp_backend=RecordingSMTP, settings_obj=custom_settings)
 
     service.send_verification_email("user@example.com", "token123")
 

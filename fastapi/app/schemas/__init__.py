@@ -11,3 +11,10 @@ from .user import (
     UserLogin,
     UserDetail,
 )
+from .team import (
+    TeamCreate,
+    TeamDetail,
+    TeamInviteRequest,
+    TeamMemberDetail,
+    TeamMemberUpdate,
+)

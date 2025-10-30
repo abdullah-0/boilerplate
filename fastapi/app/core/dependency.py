@@ -1,26 +1,25 @@
+from collections.abc import AsyncIterator
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import oauth2_scheme, settings
 from app.core.database import SessionLocal
 from app.models import User
 
 
-def get_db():
-    db = SessionLocal()
-    try:
+async def get_db() -> AsyncIterator[AsyncSession]:
+    async with SessionLocal() as db:
         yield db
-    finally:
-        db.close()
 
 
-def get_auth_user(
+async def get_auth_user(
     token: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-) -> User | None:
+    db: AsyncSession = Depends(get_db),
+) -> User:
     if token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -48,7 +47,8 @@ def get_auth_user(
         raise credentials_exception from exc
 
     query = select(User).where(User.id == user_id)
-    user = db.execute(query).scalar_one_or_none()
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
     return user

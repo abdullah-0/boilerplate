@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from jose import jwt
 
-from core.config import settings
-from models import User
-from services.user import UserService
+from app.core.config import settings
+from app.services.user import UserService
 
 
 def test_hash_and_verify_password() -> None:
@@ -13,6 +12,15 @@ def test_hash_and_verify_password() -> None:
 
     assert hashed != "Sup3rSecure!"
     assert service.verify_password("Sup3rSecure!", hashed)
+
+
+def test_hash_and_verify_long_password() -> None:
+    service = UserService()
+    password = "P" * 150
+
+    hashed = service.hash_password(password)
+
+    assert service.verify_password(password, hashed)
 
 
 def test_token_creation_and_decoding() -> None:
@@ -32,44 +40,19 @@ def test_token_creation_and_decoding() -> None:
     assert access_payload["type"] == "access"
 
 
-def test_email_verification_flow(db_session) -> None:
+def test_email_verification_token_round_trip() -> None:
     service = UserService()
-    user = User(
-        email="test@example.com",
-        password=service.hash_password("Sup3rSecure!"),
-        first_name="Test",
-        last_name="User",
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
 
-    first_token = service.create_email_verification_token(db_session, user)
-    second_token = service.create_email_verification_token(db_session, user)
-    db_session.refresh(first_token)
+    token = service.create_email_verification_token(user_id=55)
+    parsed_user_id = service.parse_email_verification_token(token)
 
-    assert first_token.consumed_at is not None
-    assert second_token.token != first_token.token
-
-    verified_user = service.verify_email_token(db_session, second_token.token)
-    assert verified_user.is_email_verified is True
+    assert parsed_user_id == 55
 
 
-def test_password_reset_flow(db_session) -> None:
+def test_password_reset_token_round_trip() -> None:
     service = UserService()
-    user = User(
-        email="reset@example.com",
-        password=service.hash_password("OldPassword123"),
-        first_name="Reset",
-        last_name="User",
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
 
-    token_record = service.create_password_reset_token(db_session, user)
-    updated_user = service.reset_password_with_token(
-        db_session, token_record.token, "NewPassword123!"
-    )
+    token = service.create_password_reset_token(user_id=99)
+    parsed_user_id = service.parse_password_reset_token(token)
 
-    assert service.verify_password("NewPassword123!", updated_user.password)
+    assert parsed_user_id == 99

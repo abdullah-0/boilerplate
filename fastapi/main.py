@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routes import auth_router, entity_router
+from app.routes import auth_router, notifications_router, team_router
 
 app = FastAPI(
     title=settings.project_name,
@@ -18,11 +18,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
-app.include_router(entity_router, prefix="/api/v1/entities", tags=["Entities"])
+app.include_router(auth_router, prefix="/api/v1/user", tags=["user"])
+app.include_router(team_router, prefix="/api/v1/teams", tags=["teams"])
+app.include_router(notifications_router)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="localhost", port=8000)
+    uvicorn.run("main:app", host="localhost", port=9000, reload=True)
