@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+"use client";
 
-import { buildNotificationsUrl } from "@/api/config";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { buildNotificationsUrl } from "@/lib/config";
 
 export type AppNotification = {
   id: string;
@@ -21,7 +23,7 @@ export const useNotifications = (enabled: boolean) => {
       return;
     }
 
-    const token = localStorage.getItem("accessToken");
+    const token = window.localStorage.getItem("accessToken");
     if (!token) {
       return;
     }
@@ -42,7 +44,7 @@ export const useNotifications = (enabled: boolean) => {
             : "notification";
 
         setNotifications((prev) => {
-          const next = [
+          const next: AppNotification[] = [
             {
               id: createNotificationId(),
               event: eventName,
@@ -53,10 +55,11 @@ export const useNotifications = (enabled: boolean) => {
           ];
           return next.slice(0, 6);
         });
-      } catch {
-        // Ignore invalid payloads
+      } catch (error) {
+        console.warn("Ignored notification payload", error);
       }
     };
+
     socket.addEventListener("message", handleMessage);
 
     const heartbeat = window.setInterval(() => {
@@ -64,10 +67,6 @@ export const useNotifications = (enabled: boolean) => {
         socket.send(JSON.stringify({ type: "ping" }));
       }
     }, 25000);
-
-    const handleSocketClose = () => cleanup();
-    socket.addEventListener("error", handleSocketClose);
-    socket.addEventListener("close", handleSocketClose);
 
     const cleanup = () => {
       isMounted = false;
@@ -77,9 +76,10 @@ export const useNotifications = (enabled: boolean) => {
       }
       socketRef.current = null;
       socket.removeEventListener("message", handleMessage);
-      socket.removeEventListener("error", handleSocketClose);
-      socket.removeEventListener("close", handleSocketClose);
     };
+
+    socket.addEventListener("close", cleanup);
+    socket.addEventListener("error", cleanup);
 
     return cleanup;
   }, [enabled]);
@@ -92,5 +92,8 @@ export const useNotifications = (enabled: boolean) => {
     setNotifications([]);
   }, []);
 
-  return { notifications, dismiss, clearAll };
+  return useMemo(
+    () => ({ notifications, dismiss, clearAll }),
+    [clearAll, dismiss, notifications]
+  );
 };

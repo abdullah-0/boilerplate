@@ -19,6 +19,7 @@ from app.schemas import (
     UserCreate,
     UserDetail,
     UserLogin,
+    UserUpdate,
 )
 from app.services import EmailService, UserService, get_email_service, get_user_service
 
@@ -145,6 +146,32 @@ def read_user_me(current_user: User = Depends(get_auth_user)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
+    return current_user
+
+
+@router.patch("/me", response_model=UserDetail)
+async def update_user_me(
+    payload: UserUpdate,
+    current_user: User = Depends(get_auth_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if payload.first_name is not None:
+        current_user.first_name = payload.first_name
+    if payload.last_name is not None:
+        current_user.last_name = payload.last_name
+
+    await db.commit()
+    await db.refresh(current_user)
+
+    notifier.send_user_notification(
+        user_id=current_user.id,
+        payload={
+            "event": "profile_updated",
+            "user_id": current_user.id,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name,
+        },
+    )
     return current_user
 
 

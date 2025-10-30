@@ -38,7 +38,10 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    "channels",
     "accounts",
+    "teams",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -72,6 +75,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "project.wsgi.application"
 ASGI_APPLICATION = "project.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 DATABASES = {
     "default": env.db(
@@ -107,13 +116,20 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("FASTAPI_ACCESS_TOKEN_EXPIRE_MINUTES", 30)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("FASTAPI_REFRESH_TOKEN_EXPIRE_DAYS", 7)),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("FASTAPI_ACCESS_TOKEN_EXPIRE_MINUTES", 30)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("FASTAPI_REFRESH_TOKEN_EXPIRE_DAYS", 7)
+    ),
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = FRONTEND_ORIGINS
+CORS_ALLOW_CREDENTIALS = True
 
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND",

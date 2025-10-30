@@ -2,7 +2,7 @@
 
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+import { API_BASE_URL, API_ENDPOINTS } from "@/lib/config";
 
 type RetriableRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
@@ -66,7 +66,9 @@ api.interceptors.response.use(
           throw new Error("Missing refresh token");
         }
 
-        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refresh: refreshToken });
+        const { data } = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.user.refresh}`, {
+          refresh: refreshToken,
+        });
         window.localStorage.setItem("accessToken", data.access);
         window.localStorage.setItem("refreshToken", data.refresh);
         api.defaults.headers.common.Authorization = `Bearer ${data.access}`;
