@@ -10,6 +10,7 @@ from .user import (
     UserCreate,
     UserLogin,
     UserDetail,
+    UserUpdate,
 )
 from .team import (
     TeamCreate,

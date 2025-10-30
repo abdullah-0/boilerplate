@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+import { API_BASE_URL, API_ENDPOINTS } from "./config";
 
 type RetriableRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
@@ -58,7 +58,7 @@ apiClient.interceptors.response.use(
         if (!refreshToken) {
           throw new Error("Missing refresh token");
         }
-        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        const { data } = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.user.refresh}`, {
           refresh: refreshToken,
         });
         localStorage.setItem("accessToken", data.access);

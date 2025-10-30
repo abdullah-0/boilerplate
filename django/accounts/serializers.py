@@ -8,10 +8,28 @@ from .models import EmailVerificationToken, PasswordResetToken, User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(source="date_joined", read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
     class Meta:
         model = User
-        fields = ("id", "email", "first_name", "last_name", "is_email_verified", "date_joined")
-        read_only_fields = ("id", "is_email_verified", "date_joined")
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "is_email_verified",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "is_email_verified",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -87,3 +105,12 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError({"token": _("Invalid or expired token.")})
         attrs["token_instance"] = token
         return attrs
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name")

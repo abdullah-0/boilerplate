@@ -1,8 +1,9 @@
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { resetPassword } from "@/api/auth";
+import { useResetPasswordMutation } from "@/api/user/userApi";
 import AuthForm from "@/components/AuthForm";
+import { getErrorMessage } from "@/utils/error";
 
 const ResetPasswordPage = () => {
   const [params] = useSearchParams();
@@ -11,26 +12,28 @@ const ResetPasswordPage = () => {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetPassword, { isLoading }] = useResetPasswordMutation();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
     setError(null);
-    setIsSubmitting(true);
 
     try {
-      await resetPassword(token, password);
+      await resetPassword({ token, password }).unwrap();
       setMessage("Password updated successfully. You can close this page.");
     } catch (err) {
-      setError("Unable to reset password. Check your token or request a new email.");
-    } finally {
-      setIsSubmitting(false);
+      setError(
+        getErrorMessage(
+          err,
+          "Unable to reset password. Check your token or request a new email."
+        )
+      );
     }
   };
 
   return (
-    <AuthForm title="Choose a new password" onSubmit={handleSubmit} isSubmitting={isSubmitting}>
+    <AuthForm title="Choose a new password" onSubmit={handleSubmit} isSubmitting={isLoading}>
       <label>
         Token
         <input value={token} onChange={(event) => setToken(event.target.value)} required />
@@ -47,7 +50,7 @@ const ResetPasswordPage = () => {
       </label>
       {message ? <p className="center">{message}</p> : null}
       {error ? <p className="center" role="alert">{error}</p> : null}
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" disabled={isLoading}>
         Update password
       </button>
     </AuthForm>

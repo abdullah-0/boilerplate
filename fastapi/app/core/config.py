@@ -21,7 +21,7 @@ oauth2_scheme = HTTPBearer(auto_error=False)
 @dataclass(slots=True)
 class Settings:
     project_name: str = field(default_factory=lambda: os.getenv("PROJECT_NAME"))
-    debug: bool = field(default_factory=lambda: os.getenv("DEBUG"))
+    debug: bool = field(default_factory=lambda: bool(os.getenv("DEBUG")))
     app_url: str = field(default_factory=lambda: os.getenv("FRONTEND_URL"))
     allowed_origins: List[str] = field(
         default_factory=lambda: os.getenv("ALLOWED_ORIGINS").split(",")

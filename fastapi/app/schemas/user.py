@@ -17,6 +17,11 @@ class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
 
 
+class UserUpdate(BaseModel):
+    first_name: str | None = Field(default=None, min_length=1, max_length=63)
+    last_name: str | None = Field(default=None, max_length=63)
+
+
 class UserLogin(UserBase):
     password: str = Field(min_length=8, max_length=128)
 

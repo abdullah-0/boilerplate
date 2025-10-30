@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { resendVerification, verifyEmail } from "@/api/auth";
+import { useResendVerificationMutation, useVerifyEmailMutation } from "@/api/user/userApi";
+import { getErrorMessage } from "@/utils/error";
 
 const VerifyEmailPage = () => {
   const [params] = useSearchParams();
   const token = params.get("token");
   const [status, setStatus] = useState<string>("Verifying your email...");
+  const [verifyEmail] = useVerifyEmailMutation();
+  const [resendVerification] = useResendVerificationMutation();
 
   useEffect(() => {
     const run = async () => {
@@ -15,20 +18,29 @@ const VerifyEmailPage = () => {
         return;
       }
       try {
-        await verifyEmail(token);
+        await verifyEmail(token).unwrap();
         setStatus("Email verified! You can now close this tab and sign in.");
       } catch (err) {
-        setStatus("Verification failed. Try requesting a new email.");
+        setStatus(getErrorMessage(err, "Verification failed. Try requesting a new email."));
       }
     };
     void run();
-  }, [token]);
+  }, [token, verifyEmail]);
 
   const handleResend = async () => {
     const email = window.prompt("Enter your email to resend verification link:");
     if (email) {
-      await resendVerification(email);
-      setStatus("Verification email sent. Check your inbox.");
+      try {
+        await resendVerification(email).unwrap();
+        setStatus("Verification email sent. Check your inbox.");
+      } catch (err) {
+        setStatus(
+          getErrorMessage(
+            err,
+            "Unable to send verification email. Please try again later."
+          )
+        );
+      }
     }
   };
 

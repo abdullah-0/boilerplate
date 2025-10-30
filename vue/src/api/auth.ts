@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "./config";
 import api from "./client";
 
 export interface TokenResponse {
@@ -27,22 +28,24 @@ export const register = (payload: {
   password: string;
   first_name: string;
   last_name?: string;
-}) => api.post<AuthResponse>("/auth/register", payload);
+}) => api.post<AuthResponse>(API_ENDPOINTS.user.register, payload);
 
 export const login = (payload: { email: string; password: string }) =>
-  api.post<AuthResponse>("/auth/login", payload);
+  api.post<AuthResponse>(API_ENDPOINTS.user.login, payload);
 
-export const refresh = (token: string) => api.post<TokenResponse>("/auth/refresh", { refresh: token });
+export const refresh = (token: string) =>
+  api.post<TokenResponse>(API_ENDPOINTS.user.refresh, { refresh: token });
 
-export const me = () => api.get<User>("/auth/me");
+export const me = () => api.get<User>(API_ENDPOINTS.user.profile);
 
-export const verifyEmail = (token: string) => api.post<{ message: string }>("/auth/verify-email", { token });
+export const verifyEmail = (token: string) =>
+  api.post<{ message: string }>(API_ENDPOINTS.user.verifyEmail, { token });
 
 export const resendVerification = (email: string) =>
-  api.post<{ message: string }>("/auth/resend-verification", { email });
+  api.post<{ message: string }>(API_ENDPOINTS.user.resendVerification, { email });
 
 export const forgotPassword = (email: string) =>
-  api.post<{ message: string }>("/auth/forgot-password", { email });
+  api.post<{ message: string }>(API_ENDPOINTS.user.forgotPassword, { email });
 
 export const resetPassword = (payload: { token: string; password: string }) =>
-  api.post<{ message: string }>("/auth/reset-password", payload);
+  api.post<{ message: string }>(API_ENDPOINTS.user.resetPassword, payload);
