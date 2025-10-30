@@ -9,14 +9,14 @@ export type AuthFormProps = {
 };
 
 const AuthForm = ({ title, onSubmit, children, footer, isSubmitting }: AuthFormProps) => (
-  <main>
-    <div className="card">
+  <div className="auth-page">
+    <div className="card auth-card">
       <h1>{title}</h1>
       <form onSubmit={onSubmit}>{children}</form>
       {footer}
       {isSubmitting ? <p className="center">Submitting...</p> : null}
     </div>
-  </main>
+  </div>
 );
 
 export default AuthForm;

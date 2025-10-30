@@ -1,8 +1,9 @@
 import { ChangeEvent, FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { register } from "@/api/auth";
+import { useRegisterMutation } from "@/api/user/userApi";
 import AuthForm from "@/components/AuthForm";
+import { getErrorMessage } from "@/utils/error";
 
 const RegisterPage = () => {
   const [form, setForm] = useState({
@@ -13,7 +14,7 @@ const RegisterPage = () => {
   });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [register, { isLoading }] = useRegisterMutation();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -24,7 +25,6 @@ const RegisterPage = () => {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setIsSubmitting(true);
 
     try {
       await register({
@@ -32,12 +32,12 @@ const RegisterPage = () => {
         password: form.password,
         first_name: form.first_name,
         last_name: form.last_name,
-      });
+      }).unwrap();
       setMessage("Account created! Please check your email to verify your address.");
     } catch (err) {
-      setError("Unable to create your account. Email may already exist.");
-    } finally {
-      setIsSubmitting(false);
+      setError(
+        getErrorMessage(err, "Unable to create your account. Email may already exist.")
+      );
     }
   };
 
@@ -50,7 +50,7 @@ const RegisterPage = () => {
           Already have an account? <Link to="/login">Sign in</Link>
         </p>
       }
-      isSubmitting={isSubmitting}
+      isSubmitting={isLoading}
     >
       <label>
         First name
@@ -77,7 +77,7 @@ const RegisterPage = () => {
       </label>
       {error ? <p className="center" role="alert">{error}</p> : null}
       {message ? <p className="center">{message}</p> : null}
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" disabled={isLoading}>
         Create account
       </button>
     </AuthForm>

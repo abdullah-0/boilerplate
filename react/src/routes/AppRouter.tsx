@@ -7,6 +7,7 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import AppLayout from "@/components/layout/AppLayout";
 
 const AuthenticatedLayout = () => {
   const { isAuthenticated } = useAuth();
@@ -15,7 +16,7 @@ const AuthenticatedLayout = () => {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return <AppLayout />;
 };
 
 const GuestLayout = () => {

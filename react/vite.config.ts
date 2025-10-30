@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
-      port: 3001,
+      port: 3030,
     },
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? "0.1.0"),

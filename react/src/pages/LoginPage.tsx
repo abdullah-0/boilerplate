@@ -1,16 +1,17 @@
 import { ChangeEvent, FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { login } from "@/api/auth";
+import { useLoginMutation } from "@/api/user/userApi";
 import AuthForm from "@/components/AuthForm";
 import { useAuth } from "@/hooks/useAuth";
+import { getErrorMessage } from "@/utils/error";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { setAuthData } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [login, { isLoading }] = useLoginMutation();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -20,16 +21,16 @@ const LoginPage = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
     try {
-      const { data } = await login({ email: form.email, password: form.password });
-      setAuthData(data);
+      const authResponse = await login({
+        email: form.email,
+        password: form.password,
+      }).unwrap();
+      setAuthData(authResponse);
       navigate("/", { replace: true });
     } catch (err) {
-      setError("Incorrect credentials.");
-    } finally {
-      setIsSubmitting(false);
+      setError(getErrorMessage(err, "Incorrect credentials."));
     }
   };
 
@@ -42,7 +43,7 @@ const LoginPage = () => {
           Need an account? <Link to="/register">Create one</Link>
         </p>
       }
-      isSubmitting={isSubmitting}
+      isSubmitting={isLoading}
     >
       <label>
         Email
@@ -59,7 +60,7 @@ const LoginPage = () => {
         />
       </label>
       {error ? <p className="center" role="alert">{error}</p> : null}
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" disabled={isLoading}>
         Sign in
       </button>
       <p className="center">
